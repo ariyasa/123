@@ -2,3 +2,4 @@
 ===
 
 arhlinux-installer-scripts
+test
