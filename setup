@@ -1,0 +1,539 @@
+#!/bin/bash
+#-----------------------------------------aui clone--------------------------------------
+#Created by ariyasawanda
+
+####### variable ##########
+DE="files/DE.txt"
+ROOT_PARTI="files/root-partision.txt"
+SWAP_PARTI="files/swap-partisiont.txt"
+MOUNTPOINT="/mnt"
+AUI_DIR=`pwd`
+prompt2="pilih (ex: 1 2 3 ): "
+
+############
+
+## funncitions ##
+arch_chroot() { #{{{
+    arch-chroot $MOUNTPOINT /bin/bash -c "${1}"
+  } 
+umount_partitions(){
+  mounted_partitions=(`lsblk | grep ${MOUNTPOINT} | awk '{print $7}' | sort -r`)
+  swapoff -a
+  for i in ${mounted_partitions[@]}; do
+    umount $i
+  done
+}
+## log
+log() { #{{{
+  echo \ `date`"," "memilih : $a"  >> log.txt
+  }
+  vga(){
+	PS3='Please enter your choice: '
+options=("Nvidia" "Ati" "Sis" "Intel" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Nvdia")
+         echo "your  choice is Nvidia"
+         yesno
+               echo "please wait ... "
+             sleep 2
+arch_chroot "pacman -S nvidia nvidia-utils pangox-compat"
+break
+            ;;
+        "Ati")
+            echo "your choice is Ati"
+            yesno
+            echo "please wait ... "
+             sleep 2
+arch_chroot "pacman -S xf86-video-ati"
+break
+            ;;
+             "Sis")
+    echo "your choice is Sis"
+     yesno
+           echo "please wait ... "
+             sleep 2
+arch_chroot "pacman -S xf86-video-sis xf86-video-sisusb xf86-video-sisimedia"
+   break
+            ;;
+        "Intel")
+    echo "your choice is Intel"
+     yesno
+           echo "please wait ... "
+             sleep 2
+arch_chroot "pacman -S xf86-video-intel xf86-video-vesa"
+   break
+            ;;
+        "Quit")
+            break
+            ;;
+        *) echo invalid option;;
+    esac
+done
+}
+choice_de(){
+	PS3='Please enter your choice: '
+options=("KDE" "Gnome-Shell" "XFCE4" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "KDE")
+         echo "your  choice is KDE"
+         yesno
+               echo "please wait ... "
+             sleep 2
+echo  "kde kdm"  > files/DE.txt
+break
+            ;;
+        "Gnome-Shell")
+            echo "your  choice is gnome-shell"
+            yesno
+            echo "please wait ... "
+             sleep 2
+echo "ttf-dejavu ttf-ms-fonts gnome gnome-extra gnome-tweak-tool gdm " > files/DE.txt 
+break
+            ;;
+        "XFCE4")
+    echo "your choice is XFCE4"
+     yesno
+           echo "please wait ... "
+             sleep 2
+ echo "xfce4 xfce-goodies gvfs ttf-dejavu slim" > files/DE.txt
+   break
+            ;;
+        "Quit")
+            break
+            ;;
+        *) echo invalid option;;
+    esac
+done
+}
+user(){
+	clear
+	echo -e "\e[26mtype names for user : \c"
+read a
+echo -e "\e[31myour username is:\e[32m $a\e[0m"
+yesno2
+echo "$a" > tets.txt
+#arch_chroot "useradd -m -g users -G lp,wheel,games,video,audio,optical,storage,scanner,power -s /bin/bash $a"
+echo "please wait... "
+ sleep 3
+clear
+}
+enable_networkmanager(){
+	PS3='Please enter your choice: '
+options=("disable-dhcpd" "disable-net-auto-wired.service" "stop- net-auto-wired.service" "enable-NetworkManager" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "disable-dhcpd")
+clear
+echo -e "\e[31mnetwork manager................ \e[0m"
+arch_chroot "systemctl disable dhcpcd"
+ ;;
+        "disable-net-auto-wired.service")
+arch_chroot "systemctl disable net-auto-wired.service"
+            ;;
+        "stop- net-auto-wired.service")
+   arch_chroot "systemctl stop net-auto-wired.service"
+            ;;
+            
+                 "enable-NetworkManager")
+  arch_chroot "systemctl enable NetworkManager"
+            ;;
+        "Quit")
+            break
+            ;;
+        *) echo invalid option;;
+    esac
+done
+
+}
+
+yesno(){
+	read -p "Are you sure? y/n " -r 
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    
+   choice_de  
+   
+  
+fi
+}
+yesno2(){
+	read -p "Are you sure? y/n " -r 
+echo    # (optional) move to a new line
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    
+user
+   
+  
+fi
+}
+
+
+	  check_root() { #{{{
+    if [[ "$(id -u)" != "0" ]]; then
+      error_msg "ERROR! You must execute the script as the 'root' user."
+    fi
+}
+
+
+## root partition
+make_root_partision(){
+log
+fdisk -l
+echo -e "choice for root  partition ( ex :/dev/sda1 ) :\c"
+read a
+echo  "$a"  > root-partision.txt
+  }
+
+## swap partsion
+make_swap_partision(){
+fdisk -l
+echo -e "choice for root  partition ( ex :/dev/sda1 ) :\c"
+read a
+echo  "$a"  > root-partision.txt
+}
+root_partision(){
+	log
+echo -e "\e[31mFormating root partition................. \e[0m"
+mkfs.ext4 -L "arch-root" $ROOT_PARTI
+clear
+echo "============== format partisi ====================="
+sh files/0
+}
+# 4 make swap
+swap_partision(){
+	log
+echo -e "\e[31mFormating swap partition................. \e[0m"
+mkswap -L "arch-swap" $SWAP_PARTI
+swapon -s
+clear 
+echo "============== baru saja membuat swap ====================="
+sh files/0
+}
+
+# 5 mount root partision to /mnt 
+view_partision(){
+fdisk -l
+}
+
+# 5 mount root partision to /mnt 
+mount_partision(){
+	log
+echo -e "\e[31mmount root partition to /mnt ................. \e[0m"
+mount /dev/sda6 /mnt
+clear
+echo "============== mount root partision on /mnt  ====================="
+sh files/0
+}
+# 7 mirrorlist 
+mirrorlist(){
+	log
+clear
+echo -e "\e[31mediting mirrorlist ................. \e[0m"
+nano /etc/pacman.d/mirrorlist
+echo "============== /etc/pacman.d/mirrorlist has edited ====================="
+sh files/1
+}
+# 8 install base base-devel
+base_devel(){
+	log
+clear
+echo -e "\e[31minstaling base base-devel > /mnt ................. \e[0m"
+pacstrap /mnt base base-devel
+echo "============== instaling base base-devel is finish ====================="
+sh files/1
+}
+# 9 generate fstab
+genfstab(){
+	log
+clear
+echo -e "\e[31mgenfstab ................. \e[0m"
+genfstab -p -U /mnt >> /mnt/etc/fstab
+echo "============== generate fstab is finish ====================="
+sh files/1
+}
+# 10 hostname 
+hostname(){
+clear
+echo -e "\e[31mset hostname ................ \e[0m"
+nano /mnt/etc/hostname
+echo "============== hostname has edited ====================="
+sh files/1
+}
+   pause_function() { #{{{
+    print_line
+    if [[ $AUTOMATIC_MODE -eq 0 ]]; then
+      read -e -sn 1 -p "Press enter to continue..."
+    fi
+    }
+ invalid_option() { #{{{
+    print_line
+    echo "Invalid option. Try another one."
+    pause_function
+    }
+
+configure_timezone(){
+  echo -e "\e[31mset timezone ................ \e[0m"
+  arch_chroot "ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime"
+}
+ 
+ print_line() { #{{{
+    printf "%$(tput cols)s\n"|tr ' ' '-'
+  } #}}}
+  mainmenu_item() { #{{{
+    echo -e "$(checkbox "$1") ${Bold}$2${Reset}"
+  } #}}
+  anjing(){
+	  echo "tot"
+	  pause_function
+	  clear
+  }
+  cek_partion(){
+	   
+  echo -e "\e[31mCheck partition................. \e[0m"
+blkid | grep '^/dev/sda'
+echo " ---------- "
+fdisk -l
+echo " ---------- "
+lsblk -I 8 -o MODEL,NAME,FSTYPE,SIZE
+echo "============== your partition ====================="
+pause_function
+}
+language(){
+	nano  /mnt/etc/locale.gen
+	echo "\e[31mplease wait ... \e[0m"
+	sleep 2
+}
+locale_config(){
+
+	echo \ " LANG="en_US.UTF-8"
+             LC_COLLATE="C"
+             LC_TIME="en_US.UTF-8" 
+             " >> /mnt /etc/locale.conf
+echo "\e[31mplease wait ... \e[0m"
+sleep 2
+locale-gen
+}
+tai() { #{{{
+ ##   print_line
+   ## if [[ $AUTOMATIC_MODE -eq 0 ]]; then
+     ## read -e -sn 1 -p "Press enter to continue..."
+   ## fi
+   echo "kontol"
+   clear
+   pause_function
+  } #}}}
+checkbox() { #{{{
+    #display [X] or [ ]
+    [[ "$1" -eq 1 ]] && echo -e "${BBlue}[${Reset}${Bold}X${BBlue}]${Reset}" || echo -e "${BBlue}[ ${BBlue}]${Reset}";
+  } #}}}
+  checkbox_package() { #{{{
+    #check if [X] or [ ]
+    is_package_installed "$1" && checkbox 1 || checkbox 0
+  } #}}}
+  
+  read_input() { #{{{
+    if [[ $AUTOMATIC_MODE -eq 1 ]]; then
+      OPTION=$1
+    else
+      read -p "$prompt1" OPTION
+    fi
+  } #}}}
+  read_input_text() { #{{{
+    if [[ $AUTOMATIC_MODE -eq 1 ]]; then
+      OPTION=$2
+    else
+      read -p "$1 [y/N]: " OPTION
+      echo ""
+    fi
+    OPTION=`echo "$OPTION" | tr '[:upper:]' '[:lower:]'`
+  } #}}}
+  read_input_options() { #{{{
+    local line
+    local packages
+    if [[ $AUTOMATIC_MODE -eq 1 ]]; then
+      array=("$1")
+    else
+      read -p "$prompt2" OPTION
+      array=("$OPTION")
+    fi
+    for line in ${array[@]/,/ }; do
+      if [[ ${line/-/} != $line ]]; then
+        for ((i=${line%-*}; i<=${line#*-}; i++)); do
+          packages+=($i);
+        done
+      else
+        packages+=($line)
+      fi
+    done
+    OPTIONS=("${packages[@]}")
+  } #}}}
+   finish(){
+  print_title "INSTALL COMPLETED"
+  #COPY AUI TO ROOT FOLDER IN THE NEW SYSTEM
+  print_warning "\nA copy of the AUI will be placed in /root directory of your new system"
+  cp -R `pwd` ${MOUNTPOINT}/root
+  read_input_text "Reboot system"
+  if [[ $OPTION == y ]]; then
+    umount_partitions
+    reboot
+  fi
+  exit 0 
+  }
+  clear
+  
+while true
+do
+echo -e "\e[32m==================== create by: ariyasa wanda ========================\e[0m"
+  echo " 1) $(mainmenu_item "${checklist[1]}"  "test koneksi")             13) $(mainmenu_item "${checklist[13]}"  "Install suport package")" 
+  echo " 2) $(mainmenu_item "${checklist[2]}"  "lihat partisi")            14) $(mainmenu_item "${checklist[14]}" "set root passrord")"
+  echo " 3) $(mainmenu_item "${checklist[3]}"  "Select|Format Partiton")   15) $(mainmenu_item "${checklist[15]}" "mkinitcpio ")" 
+  echo " 4) $(mainmenu_item "${checklist[4]}"  "Mount partition")          16) $(mainmenu_item "${checklist[16]}" "config bootloader")"
+  echo " 5) $(mainmenu_item "${checklist[5]}"  "check Partition")          17) $(mainmenu_item "${checklist[17]}" "install bootloader")" 
+  echo " 6) $(mainmenu_item "${checklist[6]}"  "Edit Mirrorlist")          18) $(mainmenu_item "${checklist[18]}" "enable network manager")"
+  echo " 7) $(mainmenu_item "${checklist[7]}"  "base n base-devel")        19) $(mainmenu_item "${checklist[19]}" "root pasword")"
+  echo " 8) $(mainmenu_item "${checklist[8]}"  "Generate fstab")           20) $(mainmenu_item "${checklist[20]}" "Instal VGA driver")"
+  echo " 9) $(mainmenu_item "${checklist[9]}"  "hostname ")                21) $(mainmenu_item "${checklist[21]}" "Install Desktop Envriontment")"
+  echo "10) $(mainmenu_item "${checklist[10]}" "Set Timezone ")            22) $(mainmenu_item "${checklist[22]}" "create new user")"
+  echo "11) $(mainmenu_item "${checklist[11]}" "Config Language")          23) $(mainmenu_item "${checklist[23]}" "umount partion ")"
+  echo "12) $(mainmenu_item "${checklist[12]}" "Locale Config")            24) $(mainmenu_item "${checklist[23]}" "reboot ")"
+ 
+  echo ""
+  echo " d) Done"
+ 
+   read_input_options
+ for OPT in ${OPTIONS[@]}; do
+    case "$OPT" in
+      1)
+      clear
+      echo -e "\e[31mTest Connection.............. \e[0m"
+        ping -c 12 www.google.com
+        clear
+        checklist[1]=1
+        ;;
+          2)
+      view_partision
+        checklist[2]=1
+        ;;
+          3)
+        choice_de
+        checklist[3]=1
+        ;;
+          4)
+        mount_partision
+        checklist[4]=1
+        ;;
+          5)
+         
+       cek_partion
+        checklist[5]=1
+        ;;
+          6)
+      mirrorlist
+        checklist[6]=1
+        ;;
+          7)
+       base_devel
+        checklist[7]=1
+        ;;
+          8)
+       genfstab
+        checklist[8]=1
+        ;;
+          9)
+    hostname
+        checklist[9]=1
+        ;;
+          10)
+        configure_timezone
+        checklist[10]=1
+        ;;
+          11)
+        language
+        checklist[11]=1
+        ;;
+           12)
+     locale_config
+        checklist[12]=1
+        ;;
+         13)
+      clear
+      echo -e "\e[31mupdate databese................. \e[0m"
+     pacman -r /mnt -Syu
+     echo -e "\e[31mplease wait................ \e[0m"
+     sleep 2
+echo -e "\e[31minstaling sofware package................. \e[0m"
+pacman -r /mnt -S xorg-server xorg-xinit xorg-server-utils xorg-twm xorg-xclock xterm grub-bios mesa mesa-demos wget net-tools dialog  dhclient  usb_modeswitch os-prober networkmanager network-manager-applet   xfce4-notifyd gnome-keyring xf86-input-synaptics xf86-input-evdev
+        checklist[13]=1
+        ;;
+          14)
+          echo -e "\e[31mchage root password ................ \e[0m"
+       arch_chroot "passwd"
+        checklist[14]=1
+        ;;
+          15)
+       arch_chroot "mkinitcpio -p linux"
+       sleep 2
+        checklist[15]=1
+        ;;
+          16)
+          clear
+           echo -e "\e[31mgrub-mkconfig................ \e[0m"
+        arch_chroot "grub-mkconfig -o /boot/grub/grub.cfg"
+        checklist[16]=1
+        ;;
+          17)
+         clear
+          echo -e "\e[31mgrub-install................ \e[0m"
+       arch_chroot "grub-install --recheck /dev/sda"
+        checklist[17]=1
+        ;;
+          18)
+          clear
+           echo -e "\e[31mconfigurasi................ \e[0m"
+     enable_networkmanager
+        checklist[18]=1
+        ;;
+          19)
+       arch_chroot "passwd"
+        checklist[19]=1
+        ;;
+          20)
+          clear
+       echo -e "\e[31myour VGA : \e[0m"
+         lspci | grep VGA
+ echo -e "\e[31mselect your VGA\e[0m"
+      vga
+        checklist[20]=1
+        ;;
+          21)
+   choice_de
+        checklist[21]=1
+        ;;
+          22)
+        user
+        checklist[22]=1
+        ;;
+          11)
+        language
+        checklist[11]=1
+        ;;
+           12)
+     locale_config
+        checklist[12]=1
+        ;;
+        "d")
+        finish
+        ;;
+      *)
+        invalid_option
+        ;;
+    esac
+  done
+done
